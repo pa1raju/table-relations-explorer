@@ -1,0 +1,76 @@
+:host {
+  display: block;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.explorer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  &__header {
+    h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+  }
+
+  &__controls {
+    display: grid;
+    grid-template-columns: 1fr 2fr auto;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  &__graph .diagram-wrapper {
+    height: 600px;
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--p-text-color);
+  }
+
+  p-autoComplete {
+    width: 100%;
+  }
+
+  :global(.p-autocomplete),
+  :global(.p-autocomplete-input),
+  :global(.p-autocomplete-multiple-container) {
+    width: 100%;
+  }
+}
+
+.muted {
+  color: var(--p-text-muted-color, #6b7280);
+  font-size: 0.9rem;
+}
+
+.hint { margin: 0; }
+
+code {
+  background: var(--p-surface-100, #f3f4f6);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+::ng-deep {
+  .node-primary { fill: #3b82f6; stroke: #1d4ed8; }
+  .node-related { fill: #10b981; stroke: #047857; }
+  .node text { fill: #ffffff; font-size: 13px; font-weight: 500; }
+
+  .edge .line { stroke: #94a3b8; fill: none; }
+  .edge-label { font-size: 11px; fill: #475569; }
+}

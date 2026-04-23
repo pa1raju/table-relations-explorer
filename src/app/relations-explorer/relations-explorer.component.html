@@ -1,0 +1,104 @@
+<div class="explorer">
+  <header class="explorer__header">
+    <h1>Table Relations Explorer</h1>
+    <p class="muted">Pick a primary table, then one or more related tables to see their column-to-column mappings.</p>
+  </header>
+
+  <section class="explorer__controls">
+    <div class="field">
+      <label for="primary">Primary table</label>
+      <p-autoComplete
+        inputId="primary"
+        [ngModel]="primaryTable()"
+        (ngModelChange)="primaryTable.set($event); onPrimaryChange()"
+        [suggestions]="primarySuggestions()"
+        (completeMethod)="searchPrimary($event)"
+        field="name"
+        placeholder="Search tables..."
+        [forceSelection]="true"
+        [dropdown]="true"
+        appendTo="body">
+      </p-autoComplete>
+    </div>
+
+    <div class="field">
+      <label for="related">Related tables</label>
+      <p-autoComplete
+        inputId="related"
+        [ngModel]="relatedTables()"
+        (ngModelChange)="relatedTables.set($event)"
+        [suggestions]="relatedSuggestions()"
+        (completeMethod)="searchRelated($event)"
+        field="name"
+        placeholder="Search related tables..."
+        [multiple]="true"
+        [forceSelection]="true"
+        [dropdown]="true"
+        [disabled]="!primaryTable()"
+        appendTo="body">
+      </p-autoComplete>
+    </div>
+
+    <div class="field field--actions">
+      <p-button
+        label="Clear"
+        severity="secondary"
+        (onClick)="clear()"
+        [disabled]="!primaryTable()">
+      </p-button>
+    </div>
+  </section>
+
+  @if (primaryTable() && relatedTables().length > 0) {
+    <section class="explorer__graph">
+      <p-card>
+        <ng-template pTemplate="title">Column mapping diagram</ng-template>
+        <ng-template pTemplate="content">
+          <div class="diagram-wrapper">
+            <app-schema-diagram
+              [primary]="primaryTable()"
+              [related]="relatedTables()"
+              [edges]="edges()">
+            </app-schema-diagram>
+          </div>
+        </ng-template>
+      </p-card>
+    </section>
+
+    <section class="explorer__table">
+      <p-card>
+        <ng-template pTemplate="title">Column mapping details</ng-template>
+        <ng-template pTemplate="content">
+          <p-table [value]="edges()" [tableStyle]="{ 'min-width': '40rem' }">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Direction</th>
+                <th>From</th>
+                <th>To</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-edge>
+              <tr>
+                <td>
+                  <p-tag
+                    [value]="edge.direction"
+                    [severity]="edge.direction === 'outgoing' ? 'info' : 'success'">
+                  </p-tag>
+                </td>
+                <td><code>{{ edge.fromTable }}.{{ edge.fromColumn }}</code></td>
+                <td><code>{{ edge.toTable }}.{{ edge.toColumn }}</code></td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="3" class="muted">No relationships in the current selection.</td></tr>
+            </ng-template>
+          </p-table>
+        </ng-template>
+      </p-card>
+    </section>
+  } @else if (primaryTable()) {
+    <p class="muted hint">Select one or more related tables to render the mapping.</p>
+  } @else {
+    <p class="muted hint">Start by picking a primary table above.</p>
+  }
+</div>
