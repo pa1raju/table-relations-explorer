@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>RSocket Browser Test Panel</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;display:flex;flex-direction:column}
+header{padding:12px 20px;border-bottom:1px solid #21262d;display:flex;align-items:center;gap:10px}
+header h1{font-size:15px;font-weight:600}
+.tag{background:#1f3a5f;color:#79b8ff;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;letter-spacing:.5px}
+.layout{display:grid;grid-template-columns:320px 1fr;flex:1;overflow:hidden;height:calc(100vh - 45px)}
+.left{border-right:1px solid #21262d;overflow-y:auto;display:flex;flex-direction:column}
+.status-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #21262d;background:#161b22}
+.dot{width:9px;height:9px;border-radius:50%;background:#484f58;flex-shrink:0;transition:background .3s}
+.dot.connected{background:#3fb950;box-shadow:0 0 6px #3fb950}
+.dot.connecting{background:#d29922;animation:blink .7s infinite}
+.dot.error{background:#f85149}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+#status-txt{font-size:12px;color:#8b949e}
+.sec{padding:12px 14px;border-bottom:1px solid #21262d}
+.sec-title{font-size:10px;font-weight:600;color:#484f58;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.field{margin-bottom:8px}
+.field label{font-size:11px;color:#8b949e;display:block;margin-bottom:3px}
+.field input,.field textarea,.field select{width:100%;padding:6px 9px;font-size:12px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#e6edf3;font-family:inherit;outline:none;transition:border-color .15s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:#388bfd}
+.field textarea{min-height:72px;resize:vertical;font-family:'Courier New',monospace;font-size:11px;line-height:1.5}
+.btn-row{display:flex;gap:6px;margin-top:8px}
+.btn{padding:7px 12px;border-radius:6px;font-size:12px;font-weight:500;border:1px solid #30363d;background:#21262d;color:#e6edf3;cursor:pointer;flex:1;transition:all .15s}
+.btn:hover:not(:disabled){background:#30363d}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-blue{background:#1f3a5f;border-color:#388bfd;color:#79b8ff}
+.btn-blue:hover:not(:disabled){background:#2d4f7f}
+.btn-green{background:#1a3a2a;border-color:#3fb950;color:#3fb950}
+.btn-green:hover:not(:disabled){background:#1f4a32}
+.btn-red{background:#3a1a1a;border-color:#f85149;color:#f85149}
+.btn-red:hover:not(:disabled){background:#4a2020}
+.mode-tabs{display:flex;gap:4px;margin-bottom:8px}
+.mtab{flex:1;padding:5px 4px;border:1px solid #30363d;border-radius:6px;font-size:10px;font-weight:500;text-align:center;cursor:pointer;background:#161b22;color:#8b949e;transition:all .15s}
+.mtab.active{background:#1f3a5f;border-color:#388bfd;color:#79b8ff}
+.steps{display:flex;gap:4px;margin-top:8px}
+.step{flex:1;padding:4px 3px;border:1px solid #30363d;border-radius:5px;font-size:9px;text-align:center;color:#484f58;background:#161b22;transition:all .3s}
+.step.done{border-color:#3fb950;color:#3fb950;background:#0d2818}
+.step.active{border-color:#d29922;color:#d29922;background:#2a1f00;animation:blink .7s infinite}
+.step.fail{border-color:#f85149;color:#f85149;background:#2a0d0d}
+.hint{font-size:10px;color:#484f58;margin-top:6px;line-height:1.6}
+.right{display:flex;flex-direction:column;overflow:hidden;background:#0d1117}
+.log-header{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #21262d;background:#161b22}
+.log-header strong{font-size:13px}
+#log-count{font-size:11px;color:#484f58}
+.clear-btn{margin-left:auto;padding:3px 10px;font-size:11px;border:1px solid #30363d;border-radius:5px;background:transparent;color:#8b949e;cursor:pointer}
+.clear-btn:hover{background:#21262d}
+#log{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:3px}
+.entry{display:grid;grid-template-columns:72px 58px 1fr;gap:6px;padding:5px 8px;border-radius:6px;border:1px solid transparent;font-size:11px;animation:fadeIn .2s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}}
+.e-info{background:#161b22;border-color:#21262d}
+.e-success{background:#0d2818;border-color:#1a4a28}
+.e-error{background:#2a0d0d;border-color:#4a1515}
+.e-data{background:#0d1f3a;border-color:#1a3a60}
+.e-warn{background:#2a1f00;border-color:#4a3800}
+.e-time{color:#484f58;font-size:10px;padding-top:1px;font-family:'Courier New',monospace}
+.e-badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;text-align:center;letter-spacing:.4px;align-self:start}
+.bi{background:#1f3a5f;color:#79b8ff}
+.bs{background:#0d2818;color:#3fb950}
+.be{background:#2a0d0d;color:#f85149}
+.bd{background:#0d1f3a;color:#58a6ff}
+.bw{background:#2a1f00;color:#d29922}
+.e-msg{color:#e6edf3;word-break:break-all;white-space:pre-wrap;font-family:'Courier New',monospace;line-height:1.5;font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>RSocket WebSocket — Browser Test Panel</h1>
+  <span class="tag">OPTION A — NO BUILD NEEDED</span>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="left">
+
+    <div class="status-bar">
+      <div class="dot" id="dot"></div>
+      <span id="status-txt">Disconnected</span>
+    </div>
+
+    <!-- Connection -->
+    <div class="sec">
+      <div class="sec-title">1 — Connection</div>
+      <div class="field">
+        <label>WebSocket URL</label>
+        <input id="ws-url" value="ws://localhost:7000/rsocket"/>
+      </div>
+      <div class="field">
+        <label>Metadata MIME type</label>
+        <select id="meta-mime">
+          <option value="simple">Simple routing  (message/x.rsocket.routing.v0)</option>
+          <option value="composite">Composite metadata</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Data MIME type</label>
+        <input id="data-mime" value="application/json"/>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-blue" id="btn-conn" onclick="doConnect()">Connect</button>
+        <button class="btn btn-red" id="btn-disc" onclick="doDisconnect()" disabled>Disconnect</button>
+      </div>
+      <div class="steps">
+        <div class="step" id="s1">1 WS open</div>
+        <div class="step" id="s2">2 SETUP sent</div>
+        <div class="step" id="s3">3 Ready</div>
+      </div>
+    </div>
+
+    <!-- Send Request -->
+    <div class="sec">
+      <div class="sec-title">2 — Send Request</div>
+      <div class="field">
+        <label>Route (your @MessageMapping route)</label>
+        <input id="route" value="rs/arrow/sql"/>
+      </div>
+      <div class="field">
+        <label>Payload JSON</label>
+        <textarea id="payload">{"query":"show total sales by region"}</textarea>
+      </div>
+      <div class="field">
+        <label>Interaction mode</label>
+        <div class="mode-tabs">
+          <div class="mtab active" id="tab-rr" onclick="setMode('rr')">Req/Response</div>
+          <div class="mtab" id="tab-rs" onclick="setMode('rs')">Stream</div>
+          <div class="mtab" id="tab-ff" onclick="setMode('ff')">Fire&amp;Forget</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-green" id="btn-send" onclick="doSend()" disabled>Send</button>
+        <button class="btn" onclick="clearLog()">Clear log</button>
+      </div>
+    </div>
+
+    <!-- Raw WS Test -->
+    <div class="sec">
+      <div class="sec-title">3 — Raw WS Reachability Test</div>
+      <div class="hint">Run this FIRST before connecting. Uses native browser WebSocket to check if the server endpoint is reachable — isolates network issues from RSocket protocol issues.</div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-blue" onclick="doRawTest()">Test raw WebSocket open</button>
+      </div>
+    </div>
+
+    <!-- Ping -->
+    <div class="sec">
+      <div class="sec-title">4 — Quick Ping</div>
+      <div class="field">
+        <label>Ping route</label>
+        <input id="ping-route" value="rs/ping"/>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btn-ping" onclick="doPing()" disabled>Ping</button>
+      </div>
+      <div class="hint">Sends requestResponse to the ping route. Any response = full end-to-end working.</div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: LOG -->
+  <div class="right">
+    <div class="log-header">
+      <strong>Event Log</strong>
+      <span id="log-count">0 events</span>
+      <button class="clear-btn" onclick="clearLog()">Clear</button>
+    </div>
+    <div id="log">
+      <div class="entry e-info">
+        <span class="e-time">--:--.---</span>
+        <span class="e-badge bi">INFO</span>
+        <span class="e-msg">Panel ready. Start with "Test raw WebSocket open" to check server reachability, then click Connect.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+
+import {
+  RSocketClient,
+  JsonSerializer,
+  IdentitySerializer,
+  encodeCompositeMetadata,
+  MESSAGE_RSOCKET_ROUTING,
+  encodeRoute as coreEncodeRoute
+} from 'https://esm.sh/rsocket-core@0.0.29-alpha.0';
+
+import RSocketWebSocketClient from 'https://esm.sh/rsocket-websocket-client@0.0.29-alpha.0';
+
+// ─── State ───────────────────────────────────────────────────────────────────
+
+let rsocketClient = null;
+let rsocketSocket = null;
+let mode = 'rr';
+let logCount = 0;
+
+// ─── Logging ─────────────────────────────────────────────────────────────────
+
+function ts() {
+  const d = new Date();
+  return d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+}
+
+function L(type, badge, msg) {
+  const map = {
+    info:    ['e-info',    'bi'],
+    success: ['e-success', 'bs'],
+    error:   ['e-error',   'be'],
+    data:    ['e-data',    'bd'],
+    warn:    ['e-warn',    'bw'],
+  };
+  const [cls, bc] = map[type] || ['e-info', 'bi'];
+  const el = document.getElementById('log');
+  const e = document.createElement('div');
+  e.className = `entry ${cls}`;
+  e.innerHTML =
+    `<span class="e-time">${ts()}</span>` +
+    `<span class="e-badge ${bc}">${badge}</span>` +
+    `<span class="e-msg">${String(msg).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
+  el.appendChild(e);
+  el.scrollTop = el.scrollHeight;
+  document.getElementById('log-count').textContent = `${++logCount} events`;
+}
+
+// ─── Steps ───────────────────────────────────────────────────────────────────
+
+function setStep(n, state) {
+  ['s1', 's2', 's3'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    const pos = i + 1;
+    el.className = 'step' + (pos < n ? ' done' : pos === n ? ` ${state}` : '');
+  });
+}
+
+// ─── Metadata encoding ───────────────────────────────────────────────────────
+
+function encodeMeta(route) {
+  const useComposite = document.getElementById('meta-mime').value === 'composite';
+  if (useComposite) {
+    return encodeCompositeMetadata([[MESSAGE_RSOCKET_ROUTING, coreEncodeRoute(route)]]);
+  }
+  // Simple routing: 1-byte length prefix + UTF-8 route string
+  return String.fromCharCode(route.length) + route;
+}
+
+// ─── Connect ─────────────────────────────────────────────────────────────────
+
+window.doConnect = () => {
+  const url      = document.getElementById('ws-url').value.trim();
+  const dataMime = document.getElementById('data-mime').value.trim();
+  const metaMimeStr = document.getElementById('meta-mime').value === 'composite'
+    ? 'message/x.rsocket.composite-metadata.v0'
+    : 'message/x.rsocket.routing.v0';
+
+  if (!url) { L('error', 'ERR', 'Enter a WebSocket URL first'); return; }
+
+  document.getElementById('btn-conn').disabled = true;
+  document.getElementById('dot').className = 'dot connecting';
+  document.getElementById('status-txt').textContent = 'Connecting…';
+  setStep(1, 'active');
+
+  L('info', 'INFO', `Connecting → ${url}`);
+  L('info', 'INFO', `metadataMimeType: ${metaMimeStr}`);
+  L('info', 'INFO', `dataMimeType: ${dataMime}`);
+
+  rsocketClient = new RSocketClient({
+    serializers: {
+      data:     JsonSerializer,
+      metadata: IdentitySerializer,
+    },
+    setup: {
+      keepAlive:        60000,
+      lifetime:         180000,
+      dataMimeType:     dataMime,
+      metadataMimeType: metaMimeStr,
+    },
+    transport: new RSocketWebSocketClient({ url }),
+  });
+
+  rsocketClient.connect().subscribe({
+    onComplete(socket) {
+      rsocketSocket = socket;
+      document.getElementById('dot').className = 'dot connected';
+      document.getElementById('status-txt').textContent = `Connected → ${url}`;
+      document.getElementById('btn-disc').disabled = false;
+      document.getElementById('btn-send').disabled = false;
+      document.getElementById('btn-ping').disabled = false;
+      setStep(3, 'done');
+      L('success', 'CONN',  'WebSocket open');
+      L('success', 'SETUP', 'RSocket SETUP frame sent and accepted by server');
+      L('success', 'READY', 'Socket ready — you can now send requests');
+    },
+    onError(err) {
+      document.getElementById('dot').className = 'dot error';
+      document.getElementById('status-txt').textContent = 'Connection failed';
+      document.getElementById('btn-conn').disabled = false;
+      setStep(1, 'fail');
+      L('error', 'ERR',  `Connection failed: ${err?.message ?? String(err)}`);
+      L('warn',  'HINT', 'Check: is the server running? Is the URL correct? Is CORS allowed?');
+      L('warn',  'HINT', 'If server uses composite metadata, switch the Metadata MIME dropdown.');
+    },
+    onSubscribe() {
+      setStep(2, 'active');
+      L('info', 'SETUP', 'Sending RSocket SETUP frame…');
+    },
+  });
+};
+
+// ─── Disconnect ───────────────────────────────────────────────────────────────
+
+window.doDisconnect = () => {
+  if (rsocketClient) { try { rsocketClient.close(); } catch (_) {} }
+  rsocketClient = null;
+  rsocketSocket = null;
+  document.getElementById('dot').className = 'dot';
+  document.getElementById('status-txt').textContent = 'Disconnected';
+  document.getElementById('btn-conn').disabled = false;
+  document.getElementById('btn-disc').disabled = true;
+  document.getElementById('btn-send').disabled = true;
+  document.getElementById('btn-ping').disabled = true;
+  setStep(0, '');
+  L('info', 'DISC', 'Disconnected from server');
+};
+
+// ─── Send ─────────────────────────────────────────────────────────────────────
+
+window.doSend = () => {
+  if (!rsocketSocket) { L('error', 'ERR', 'Not connected'); return; }
+
+  const route = document.getElementById('route').value.trim();
+  let payload;
+  try {
+    payload = JSON.parse(document.getElementById('payload').value);
+  } catch (e) {
+    L('error', 'ERR', 'Invalid JSON payload: ' + e.message);
+    return;
+  }
+
+  const metadata = encodeMeta(route);
+  L('info', 'SEND', `[${mode.toUpperCase()}] route="${route}"\npayload: ${JSON.stringify(payload, null, 2)}`);
+
+  if (mode === 'rr') {
+    rsocketSocket.requestResponse({ data: payload, metadata }).subscribe({
+      onComplete(p) { L('data', 'DATA', JSON.stringify(p.data, null, 2)); },
+      onError(err)  { L('error', 'ERR', err?.message ?? String(err)); },
+      onSubscribe() {},
+    });
+
+  } else if (mode === 'rs') {
+    let n = 0;
+    rsocketSocket.requestStream({ data: payload, metadata }).subscribe({
+      onNext(p)        { n++; L('data', `DATA[${n}]`, JSON.stringify(p.data, null, 2)); },
+      onComplete()     { L('success', 'DONE', `Stream complete — ${n} item(s) received`); },
+      onError(err)     { L('error', 'ERR', err?.message ?? String(err)); },
+      onSubscribe(sub) { sub.request(2147483647); },
+    });
+
+  } else {
+    rsocketSocket.fireAndForget({ data: payload, metadata });
+    L('success', 'F&F', 'Fire-and-forget sent — no response expected');
+  }
+};
+
+// ─── Raw WS test ──────────────────────────────────────────────────────────────
+
+window.doRawTest = () => {
+  const url = document.getElementById('ws-url').value.trim();
+  L('info', 'WS', `Testing raw WebSocket open → ${url}`);
+  let ws;
+  try { ws = new WebSocket(url); } catch (e) { L('error', 'ERR', 'new WebSocket() failed: ' + e.message); return; }
+  ws.onopen  = () => {
+    L('success', 'OPEN', `Raw WebSocket OPEN — server is reachable at ${url}`);
+    L('warn',    'NOTE', 'Network path is clear. Click Connect to do the full RSocket handshake.');
+    ws.close();
+  };
+  ws.onerror = () => L('error', 'ERR', 'WebSocket failed — server unreachable, wrong port, or CORS blocked');
+  ws.onclose = (e) => L('info', 'WS', `Closed (code=${e.code}${e.reason ? ' "' + e.reason + '"' : ''})`);
+};
+
+// ─── Ping ─────────────────────────────────────────────────────────────────────
+
+window.doPing = () => {
+  if (!rsocketSocket) { L('error', 'ERR', 'Not connected'); return; }
+  const route = document.getElementById('ping-route').value.trim();
+  const t0    = Date.now();
+  L('info', 'PING', `Pinging route "${route}"`);
+  rsocketSocket.requestResponse({ data: { ping: true }, metadata: encodeMeta(route) }).subscribe({
+    onComplete(p) { L('success', 'PONG', `Response in ${Date.now() - t0}ms → ${JSON.stringify(p.data)}`); },
+    onError(err)  { L('error',   'ERR',  `Ping failed: ${err?.message ?? String(err)}`); },
+    onSubscribe() {},
+  });
+};
+
+// ─── Mode toggle ──────────────────────────────────────────────────────────────
+
+window.setMode = (m) => {
+  mode = m;
+  ['rr', 'rs', 'ff'].forEach(id => document.getElementById('tab-' + id).classList.remove('active'));
+  document.getElementById('tab-' + m).classList.add('active');
+};
+
+// ─── Clear ────────────────────────────────────────────────────────────────────
+
+window.clearLog = () => {
+  document.getElementById('log').innerHTML = '';
+  logCount = 0;
+  document.getElementById('log-count').textContent = '0 events';
+};
+
+</script>
+</body>
+</html>
